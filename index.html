@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Dual Lyrics</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Frank+Ruhl+Libre:wght@400;700&family=DM+Sans:wght@400;500&family=Courier+Prime&display=swap">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:#0a0a0e;color:#ece6d8;font-family:'DM Sans',sans-serif;min-height:100vh}
+  input,textarea{outline:none;-webkit-appearance:none;font-family:inherit}
+  button{cursor:pointer;-webkit-appearance:none;border:none;font-family:inherit}
+  button:active{opacity:.75}
+  ::placeholder{color:#42425a}
+  ::-webkit-scrollbar{width:3px}
+  ::-webkit-scrollbar-thumb{background:#262636;border-radius:2px}
+  a{color:#dcb870;text-decoration:underline}
+
+  .screen{display:none;max-width:430px;margin:0 auto;padding:40px 18px 80px}
+  .screen.active{display:block}
+
+  /* ── Header ── */
+  .app-header{text-align:center;margin-bottom:36px}
+  .app-sub{font-size:9px;letter-spacing:.38em;color:#42425a;margin-bottom:10px;text-transform:uppercase}
+  .app-title{font-family:'Cormorant Garamond',serif;font-size:46px;font-weight:600;line-height:1;
+    background:linear-gradient(135deg,#c49040,#dcb870);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .app-desc{font-family:'Frank Ruhl Libre',serif;font-size:15px;color:#72728a;margin-top:10px}
+
+  /* ── Card ── */
+  .card{background:#14141c;border:1px solid #262636;border-radius:16px;padding:22px 16px 6px;margin-bottom:14px}
+  .step{display:flex;gap:13px;margin-bottom:22px}
+  .step-num{width:30px;height:30px;border-radius:50%;border:1.5px solid #262636;background:#1c1c28;
+    color:#c49040;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;margin-top:1px}
+  .step-title{font-family:'Frank Ruhl Libre',serif;font-size:14px;font-weight:700;color:#ece6d8;margin-bottom:5px}
+  .step-body{font-family:'Frank Ruhl Libre',serif;font-size:13px;color:#72728a;line-height:1.75}
+
+  /* ── URI box ── */
+  .uri-box{display:flex;gap:8px;align-items:center;background:#1c1c28;border:1px solid #262636;
+    border-radius:10px;padding:10px 12px;margin-top:8px}
+  .uri-text{flex:1;font-family:'Courier Prime',monospace;font-size:9.5px;color:#72728a;
+    word-break:break-all;direction:ltr}
+  .uri-copy{background:#14141c;border:1px solid #262636;color:#72728a;border-radius:8px;
+    padding:8px 13px;font-size:12px;white-space:nowrap;min-height:38px;transition:all .2s}
+  .uri-copy.ok{background:#1c3828;border-color:#60c8a4;color:#60c8a4}
+
+  /* ── Inputs ── */
+  .input-field{width:100%;display:block;margin-top:8px;background:#1c1c28;
+    border:1.5px solid #262636;border-radius:10px;padding:13px 14px;color:#ece6d8;
+    font-size:15px;font-family:'Courier Prime',monospace;direction:ltr;transition:border-color .25s}
+  .input-field:focus{border-color:#c49040}
+  textarea.input-field{resize:none;height:90px}
+
+  /* ── Buttons ── */
+  .btn-primary{width:100%;padding:17px 0;border-radius:14px;font-size:17px;font-weight:700;
+    font-family:'Frank Ruhl Libre',serif;letter-spacing:.04em;min-height:56px;transition:all .3s;
+    background:linear-gradient(135deg,#c49040,#dcb870);color:#0a0a0e;
+    box-shadow:0 4px 28px #c4904040}
+  .btn-primary:disabled{background:#1c1c28;color:#42425a;box-shadow:none}
+  .btn-secondary{width:100%;padding:14px 0;border-radius:14px;font-size:14px;min-height:50px;
+    font-family:'Frank Ruhl Libre',serif;background:transparent;border:1px solid #262636;color:#72728a}
+  .btn-back{background:none;color:#72728a;font-size:14px;font-family:'Frank Ruhl Libre',serif;
+    padding:0;margin-bottom:28px}
+
+  .hint{text-align:center;font-size:11.5px;color:#42425a;margin-top:14px;
+    font-family:'Frank Ruhl Libre',serif}
+
+  /* ── Player ── */
+  #player-screen{padding:0}
+  .player-bg{position:fixed;inset:0;background-size:cover;background-position:center;
+    filter:blur(55px) brightness(.11) saturate(1.8);transform:scale(1.15);z-index:0;transition:background-image .5s}
+  .player-content{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh;max-width:460px;margin:0 auto}
+
+  .track-header{padding:26px 18px 14px}
+  .track-row{display:flex;align-items:center;gap:14px}
+  .album-art{width:70px;height:70px;border-radius:11px;overflow:hidden;flex-shrink:0;
+    background:#1c1c28;box-shadow:0 6px 24px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:28px}
+  .album-art img{width:100%;height:100%;object-fit:cover}
+  .track-info{flex:1;min-width:0}
+  .track-name{font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:600;color:#ece6d8;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+  .track-artist{font-size:14px;color:#72728a;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .eq{display:flex;gap:3px;align-items:flex-end;height:20px;flex-shrink:0}
+  .eq span{width:3px;border-radius:2px;background:linear-gradient(to top,#c49040,#dcb870);height:60%}
+  @keyframes eq1{0%{height:30%}100%{height:95%}}
+  @keyframes eq2{0%{height:80%}100%{height:20%}}
+  @keyframes eq3{0%{height:50%}100%{height:85%}}
+  .eq span:nth-child(1){animation:eq1 .75s ease-in-out infinite alternate}
+  .eq span:nth-child(2){animation:eq2 .92s ease-in-out infinite alternate}
+  .eq span:nth-child(3){animation:eq3 1.07s ease-in-out infinite alternate}
+
+  .progress-wrap{margin-top:14px}
+  .progress-bar{height:3px;background:#1c1c28;border-radius:2px;overflow:hidden}
+  .progress-fill{height:100%;background:linear-gradient(90deg,#c49040,#dcb870);border-radius:2px;
+    transition:width 1s linear;width:0%}
+  .progress-times{display:flex;justify-content:space-between;margin-top:5px;
+    font-size:10.5px;color:#42425a;font-family:'Courier Prime',monospace}
+
+  .divider{height:1px;background:linear-gradient(90deg,transparent,#262636 20%,#262636 80%,transparent)}
+
+  .lyrics-area{flex:1;overflow-y:auto;padding:10px 18px 90px}
+  .lyric-pair{padding:12px 0;border-bottom:1px solid #1c1c28}
+  .lyric-en{font-family:'Courier Prime',monospace;font-size:14.5px;color:#ece6d8;
+    line-height:1.6;margin-bottom:5px;direction:ltr}
+  .lyric-he{font-family:'Frank Ruhl Libre',serif;font-size:16.5px;color:#60c8a4;
+    line-height:1.6;text-align:right;direction:rtl}
+
+  .status-box{text-align:center;padding-top:60px}
+  .status-icon{font-size:48px;margin-bottom:16px}
+  .status-text{color:#72728a;font-size:14px;font-family:'Frank Ruhl Libre',serif}
+
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{width:36px;height:36px;margin:0 auto 16px;border-radius:50%;
+    border:2.5px solid #262636;border-top-color:#c49040;animation:spin .75s linear infinite}
+
+  .disconnect-btn{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:10;
+    background:rgba(20,20,28,.87);backdrop-filter:blur(12px);
+    border:1px solid #262636;color:#42425a;border-radius:20px;
+    padding:8px 20px;font-size:12px}
+</style>
+</head>
+<body>
+
+<!-- ── SETUP SCREEN ── -->
+<div id="setup-screen" class="screen active">
+  <div class="app-header">
+    <div class="app-sub">Spotify × Google Translate</div>
+    <div class="app-title">Dual Lyrics</div>
+    <div class="app-desc">מילות שיר + תרגום עברי — חי ובזמן אמת</div>
+  </div>
+
+  <div class="card">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">צור אפליקציה ב-Spotify Developer</div>
+        <div class="step-body">
+          כנס ל-<a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com</a>
+          ← Create app ← מלא שם כלשהו ← Save
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-title">הוסף Redirect URI בהגדרות</div>
+        <div class="step-body">
+          לחץ Edit Settings ← Redirect URIs ← הדבק את הכתובת הזו ← Save
+          <div class="uri-box">
+            <span class="uri-text" id="redirect-uri-text"></span>
+            <button class="uri-copy" id="copy-btn" onclick="copyUri()">העתק</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-title">הדבק את ה-Client ID</div>
+        <div class="step-body">
+          <input class="input-field" id="client-id-input" type="text"
+            placeholder="Client ID (32 תווים)..." oninput="onClientIdChange(this.value)" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-primary" id="connect-btn" onclick="connect()" disabled>🎧 &nbsp;התחבר לספוטיפיי</button>
+  <button class="btn-secondary" style="margin-top:10px" onclick="showScreen('manual-screen')">לא עובד? הדבק טוקן ידנית ←</button>
+  <p class="hint">לא נשמרים נתונים · עובד מקומית בדפדפן</p>
+</div>
+
+<!-- ── MANUAL SCREEN ── -->
+<div id="manual-screen" class="screen">
+  <button class="btn-back" onclick="showScreen('setup-screen')">→ חזרה להגדרות</button>
+  <h2 style="font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:600;color:#ece6d8;margin-bottom:10px">הדבקת טוקן ידנית</h2>
+  <p style="font-family:'Frank Ruhl Libre',serif;font-size:14px;color:#72728a;line-height:1.75;margin-bottom:24px">
+    אם כפתור "התחבר" לא עבד — בצע כך:
+  </p>
+
+  <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:24px">
+    <div class="step"><div class="step-num">1</div><div class="step-body" style="padding-top:5px">ודא שהזנת Client ID במסך הקודם</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-body" style="padding-top:5px">פתח <a id="auth-link" href="#" target="_blank" rel="noopener">קישור ההתחברות</a> בדפדפן הטלפון</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-body" style="padding-top:5px">התחבר עם Spotify ← אשר הרשאות</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-body" style="padding-top:5px">לאחר ההפניה — העתק את כל ה-URL מסרגל הכתובות</div></div>
+    <div class="step"><div class="step-num">5</div><div class="step-body" style="padding-top:5px">הדבק כאן:</div></div>
+  </div>
+
+  <textarea class="input-field" id="manual-token-input" placeholder="הדבק URL מלא או access_token=..." oninput="onManualInput(this.value)"></textarea>
+  <button class="btn-primary" id="apply-btn" style="margin-top:12px" onclick="applyManual()" disabled>✓ &nbsp;המשך לנגן</button>
+</div>
+
+<!-- ── PLAYER SCREEN ── -->
+<div id="player-screen" class="screen">
+  <div class="player-bg" id="player-bg"></div>
+  <div class="player-content">
+    <div class="track-header">
+      <div class="track-row">
+        <div class="album-art" id="album-art">🎵</div>
+        <div class="track-info">
+          <div class="track-name" id="track-name">ממתין לשיר בספוטיפיי...</div>
+          <div class="track-artist" id="track-artist"></div>
+        </div>
+        <div class="eq" id="eq" style="display:none">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+      <div class="progress-wrap" id="progress-wrap" style="display:none">
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="progress-times">
+          <span id="time-current">0:00</span>
+          <span id="time-total">0:00</span>
+        </div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="lyrics-area" id="lyrics-area">
+      <div class="status-box">
+        <div class="status-icon">🎶</div>
+        <div class="status-text">פתח שיר בספוטיפיי כדי לראות את המילים</div>
+      </div>
+    </div>
+    <button class="disconnect-btn" onclick="disconnect()">התנתק</button>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────
+let accessToken = null;
+let pollTimer   = null;
+let lastTrackId = null;
+let loadSeq     = 0;
+const SCOPES    = "user-read-currently-playing user-read-playback-state";
+const redirectUri = location.href.split(/[?#]/)[0];
+
+// ── Init ───────────────────────────────────────────────
+document.getElementById("redirect-uri-text").textContent = redirectUri;
+
+// Check if returning from Spotify OAuth
+(function checkHash() {
+  const h = location.hash;
+  if (!h) return;
+  const p = new URLSearchParams(h.slice(1));
+  const t = p.get("access_token");
+  if (!t) return;
+  const m = (p.get("state") || "").match(/^cid:(.+)$/);
+  if (m) {
+    document.getElementById("client-id-input").value = m[1];
+  }
+  history.replaceState({}, "", location.pathname);
+  setToken(t);
+})();
+
+// ── Screens ────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+// ── Client ID input ────────────────────────────────────
+function onClientIdChange(val) {
+  const ready = val.trim().length > 10;
+  document.getElementById("connect-btn").disabled = !ready;
+  if (ready) updateAuthLink(val.trim());
+}
+
+function updateAuthLink(cid) {
+  const state = encodeURIComponent("cid:" + cid);
+  const url = "https://accounts.spotify.com/authorize" +
+    "?client_id=" + encodeURIComponent(cid) +
+    "&response_type=token" +
+    "&redirect_uri=" + encodeURIComponent(redirectUri) +
+    "&scope=" + encodeURIComponent(SCOPES) +
+    "&state=" + state;
+  document.getElementById("auth-link").href = url;
+  return url;
+}
+
+// ── Connect (direct navigation) ────────────────────────
+function connect() {
+  const cid = document.getElementById("client-id-input").value.trim();
+  if (!cid) return;
+  const url = updateAuthLink(cid);
+  try { window.top.location.href = url; } catch(e) { window.location.href = url; }
+}
+
+// ── Copy redirect URI ──────────────────────────────────
+function copyUri() {
+  navigator.clipboard.writeText(redirectUri).then(() => {
+    const btn = document.getElementById("copy-btn");
+    btn.textContent = "✓";
+    btn.classList.add("ok");
+    setTimeout(() => { btn.textContent = "העתק"; btn.classList.remove("ok"); }, 2500);
+  });
+}
+
+// ── Manual token ───────────────────────────────────────
+function onManualInput(val) {
+  document.getElementById("apply-btn").disabled = !val.trim();
+}
+
+function applyManual() {
+  let t = document.getElementById("manual-token-input").value.trim();
+  const m = t.match(/access_token=([^&#]+)/);
+  if (m) t = m[1];
+  if (!t) return;
+  setToken(t);
+}
+
+// ── Set token & start ──────────────────────────────────
+function setToken(t) {
+  accessToken = t;
+  showScreen("player-screen");
+  startPolling();
+}
+
+function disconnect() {
+  accessToken = null;
+  clearInterval(pollTimer);
+  lastTrackId = null;
+  showScreen("setup-screen");
+}
+
+// ── Spotify polling ────────────────────────────────────
+function startPolling() {
+  pollOnce();
+  pollTimer = setInterval(pollOnce, 3000);
+}
+
+async function pollOnce() {
+  if (!accessToken) return;
+  try {
+    const r = await fetch("https://api.spotify.com/v1/me/player/currently-playing", {
+      headers: { Authorization: "Bearer " + accessToken }
+    });
+    if (r.status === 401) { disconnect(); return; }
+    if (r.status === 204 || !r.ok) return;
+    const d = await r.json();
+    if (!d?.item) return;
+    const track = {
+      id: d.item.id,
+      name: d.item.name,
+      artist: d.item.artists?.[0]?.name || "",
+      art: d.item.album?.images?.[0]?.url || null,
+      progress: d.progress_ms,
+      duration: d.item.duration_ms,
+      playing: d.is_playing
+    };
+    updateTrackUI(track);
+    if (track.id !== lastTrackId) {
+      lastTrackId = track.id;
+      loadLyrics(track.artist, track.name);
+    }
+  } catch(e) {}
+}
+
+// ── Track UI ───────────────────────────────────────────
+function updateTrackUI(t) {
+  document.getElementById("track-name").textContent   = t.name;
+  document.getElementById("track-artist").textContent = t.artist;
+
+  const artEl = document.getElementById("album-art");
+  if (t.art) {
+    artEl.innerHTML = `<img src="${t.art}" alt="">`;
+    document.getElementById("player-bg").style.backgroundImage = `url(${t.art})`;
+  } else {
+    artEl.innerHTML = "🎵";
+  }
+
+  document.getElementById("eq").style.display          = t.playing ? "flex" : "none";
+  document.getElementById("progress-wrap").style.display = "block";
+  document.getElementById("progress-fill").style.width = (Math.min(100, t.progress / t.duration * 100)).toFixed(2) + "%";
+  document.getElementById("time-current").textContent  = fmtTime(t.progress);
+  document.getElementById("time-total").textContent    = fmtTime(t.duration);
+}
+
+function fmtTime(ms) {
+  const s = Math.floor((ms || 0) / 1000);
+  return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0");
+}
+
+// ── Lyrics ─────────────────────────────────────────────
+async function getLyrics(artist, title) {
+  const r = await fetch(
+    "https://api.lyrics.ovh/v1/" + encodeURIComponent(artist) + "/" + encodeURIComponent(title)
+  );
+  if (!r.ok) throw new Error("not found");
+  const d = await r.json();
+  return d.lyrics.split("\n").map(l => l.trim()).filter(l => l && !/^\[.+\]$/.test(l));
+}
+
+// ── Translation ────────────────────────────────────────
+async function translateText(text) {
+  // Try Google Translate (free, unofficial)
+  try {
+    const r = await fetch(
+      "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=he&dt=t&q=" +
+      encodeURIComponent(text)
+    );
+    if (r.ok) {
+      const d = await r.json();
+      const res = (d[0] || []).map(s => s?.[0] || "").join("").trim();
+      if (res) return res;
+    }
+  } catch(e) {}
+  // Fallback: MyMemory
+  const r = await fetch(
+    "https://api.mymemory.translated.net/get?q=" +
+    encodeURIComponent(text.slice(0, 450)) + "&langpair=en|he"
+  );
+  const d = await r.json();
+  return d.responseData?.translatedText || text;
+}
+
+async function translateAll(lines) {
+  const CHUNK = 12;
+  const result = [];
+  for (let i = 0; i < lines.length; i += CHUNK) {
+    const chunk = lines.slice(i, i + CHUNK);
+    try {
+      const tr = await translateText(chunk.join("\n"));
+      const heArr = tr.split("\n");
+      chunk.forEach((en, j) => result.push({ en, he: (heArr[j] || en).trim() }));
+    } catch(e) {
+      chunk.forEach(en => result.push({ en, he: "—" }));
+    }
+  }
+  return result;
+}
+
+// ── Load + render lyrics ───────────────────────────────
+async function loadLyrics(artist, title) {
+  const seq = ++loadSeq;
+  setLyricsStatus("spinner", "מחפש מילות שיר...");
+  try {
+    const lines = await getLyrics(artist, title);
+    if (seq !== loadSeq) return;
+    setLyricsStatus("spinner", "מתרגם לעברית...");
+    const pairs = await translateAll(lines);
+    if (seq !== loadSeq) return;
+    renderLyrics(pairs);
+  } catch(e) {
+    if (seq === loadSeq) setLyricsStatus("error", "לא נמצאו מילות שיר לשיר זה");
+  }
+}
+
+function setLyricsStatus(type, msg) {
+  const area = document.getElementById("lyrics-area");
+  if (type === "spinner") {
+    area.innerHTML = `<div class="status-box"><div class="spinner"></div><div class="status-text">${msg}</div></div>`;
+  } else {
+    area.innerHTML = `<div class="status-box"><div class="status-icon">😔</div><div class="status-text">${msg}</div>
+      <button onclick="retryLyrics()" style="margin-top:22px;background:#1c1c28;border:1px solid #262636;
+        color:#dcb870;border-radius:10px;padding:11px 26px;font-size:15px;min-height:46px;
+        font-family:'Frank Ruhl Libre',serif">נסה שוב</button></div>`;
+  }
+}
+
+function retryLyrics() {
+  if (lastTrackId) {
+    const name   = document.getElementById("track-name").textContent;
+    const artist = document.getElementById("track-artist").textContent;
+    loadLyrics(artist, name);
+  }
+}
+
+function renderLyrics(pairs) {
+  const area = document.getElementById("lyrics-area");
+  area.innerHTML = pairs.map((p, i) =>
+    `<div class="lyric-pair" style="animation:fadein .3s ease both;animation-delay:${Math.min(i*20,400)}ms">
+      <div class="lyric-en">${escHtml(p.en)}</div>
+      <div class="lyric-he">${escHtml(p.he)}</div>
+    </div>`
+  ).join("");
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// ── Fade-in animation ──────────────────────────────────
+const style = document.createElement("style");
+style.textContent = "@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}";
+document.head.appendChild(style);
+</script>
+</body>
+</html>
